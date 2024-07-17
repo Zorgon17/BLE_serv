@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BLE_serv</string>
+    <string name="connection_button">Подключиться к переферийному устройству</string>
+</resources>
