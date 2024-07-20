@@ -1,13 +1,15 @@
 package com.example.ble_serv
 
-import android.app.Activity
+import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import com.example.ble_serv.ui.navigation.Navigation
 import com.example.ble_serv.ui.theme.BLE_servTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,6 +23,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BLE_servTheme {
+
                 Navigation()
             }
         }
@@ -32,10 +35,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var bluetoothAdapter: BluetoothAdapter
 
-    /**
-     * Приватная переменная, которая отслеживает, было ли уже показано диалоговое окно Bluetooth.
-     */
-    private var isBluetoothDialogAlreadyShown = false
+    companion object {
+        private const val REQUEST_ENABLE_BT = 1
+    }
 
     override fun onStart() {
         super.onStart()
@@ -43,23 +45,53 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Вызывает функцию showBluetoothDialog() для отображения диалогового окна с просьбой включить Bluetooth.
-     */
+    * Запрашивает разрешение для аппаратного включения Bluetooth(если он есть)
+    */
+    private val REQUEST_CONST = 100
+
     private fun showBluetoothDialog() {
-        if (!bluetoothAdapter.isEnabled) { //Проверяет, включен ли Bluetooth.
-            if (!isBluetoothDialogAlreadyShown) { //Проверяет, демонстрировался ли диалог с Bluetooth.
-                val enableBluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE) //Создаем запрос на включение Bluetooth
-                startBluetoothIntentForResult.launch(enableBluetoothIntent) //Запускаем наш запрос
-                isBluetoothDialogAlreadyShown = true // Меняем флаг переменной isBluetoothDialogAlreadyShown
+        if (!bluetoothAdapter.isEnabled) {
+            val enableBluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT),
+                    REQUEST_CONST
+                )
+                return
+            } else {
+                startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT)
             }
         }
     }
 
-    private val startBluetoothIntentForResult =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            isBluetoothDialogAlreadyShown = false
-            if (result.resultCode != Activity.RESULT_OK) {
-                showBluetoothDialog()
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQUEST_CONST) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                val enableBluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                if (ActivityCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ) != PackageManager.PERMISSION_GRANTED
+                )
+                startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT)
+            } else {
+                Toast.makeText(this, "Bluetooth permission denied", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
 }
+
