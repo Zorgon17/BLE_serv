@@ -17,7 +17,7 @@ import com.example.ble_serv.R
 import com.example.ble_serv.ui.navigation.Screens
 
 @Composable
-fun HomeScrеen(navController: NavController) {
+fun HomeScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()

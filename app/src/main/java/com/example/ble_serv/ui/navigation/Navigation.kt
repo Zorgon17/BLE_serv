@@ -8,7 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.ble_serv.ui.navigation.Screens.HomeScreen
 import com.example.ble_serv.ui.screens.ConnectionScreen
-import com.example.ble_serv.ui.screens.HomeScrеen
+import com.example.ble_serv.ui.screens.HomeScreen
 
 @Composable
 fun Navigation() {
@@ -16,7 +16,7 @@ fun Navigation() {
 
     NavHost(navController = navController, startDestination = HomeScreen.route){
         composable(HomeScreen.route){
-            HomeScrеen(navController)
+            HomeScreen(navController)
         }
 
         composable(Screens.ConnectionScreen.route){
