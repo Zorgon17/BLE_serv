@@ -24,8 +24,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BLE_servTheme {
-
-                Navigation()
+                Navigation(onBluetoothStateChanged = { showBluetoothDialog() })
             }
         }
     }
@@ -46,8 +45,8 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-    * Запрашивает разрешение для аппаратного включения Bluetooth(если он есть)
-    */
+     * Запрашивает разрешение для аппаратного включения Bluetooth(если он есть)
+     */
     private val REQUEST_CONST = 100
 
     private fun showBluetoothDialog() {
@@ -88,7 +87,7 @@ class MainActivity : ComponentActivity() {
                         Manifest.permission.BLUETOOTH_CONNECT
                     ) != PackageManager.PERMISSION_GRANTED
                 )
-                startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT)
+                    startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT)
             } else {
                 Toast.makeText(this, "Bluetooth permission denied", Toast.LENGTH_SHORT).show()
             }

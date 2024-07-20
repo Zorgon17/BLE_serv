@@ -11,7 +11,7 @@ import com.example.ble_serv.ui.screens.ConnectionScreen
 import com.example.ble_serv.ui.screens.HomeScreen
 
 @Composable
-fun Navigation() {
+fun Navigation(onBluetoothStateChanged: () -> Unit) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = HomeScreen.route){
@@ -20,7 +20,7 @@ fun Navigation() {
         }
 
         composable(Screens.ConnectionScreen.route){
-            ConnectionScreen()
+            ConnectionScreen(onBluetoothStateChanged)
         }
     }
 
