@@ -1,6 +1,7 @@
 package com.example.ble_serv
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("SuspiciousIndentation")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
