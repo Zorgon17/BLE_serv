@@ -32,8 +32,7 @@ class ConnectionReceiveBLEManager @Inject constructor(
     /**
      * #1 MutableSharedFlow подходит для обработки ряда выдаваемых значений, в реалиях BLE по идее must have
      */
-    override val data: MutableSharedFlow<Resource<ConnectionResult>>
-        get() = MutableSharedFlow()
+    override val data: MutableSharedFlow<Resource<ConnectionResult>> = MutableSharedFlow()
 
     /**
      * #2 Создаем сканер BLE-устройств
@@ -61,24 +60,26 @@ class ConnectionReceiveBLEManager @Inject constructor(
     /**
      * #5 scanCallback используется для обработки результатов сканирования Bluetooth Low Energy (BLE)
      */
-    private val DEVICE_NAME = "JJ3J" // изменить название на название клиента, можно использовать result.device.address
+    private val DEVICE_NAME =
+        "JJ3J" // изменить название на название клиента, можно использовать result.device.address
     private val CONNECTING_SERVICE_UIID = "VFVFV"
     private val CONNECTING_CHARACTERISTICS_UUID = "VFVFV"
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            if(result.device.name == DEVICE_NAME){
+            if (result.device.name == DEVICE_NAME) {
                 coroutineScope.launch {
                     data.emit(Resource.Loading(message = "Подключаемся к устройству..."))
                 }
-                if(isScanning){
-                    result.device.connectGatt(context,false, gattCallback)
+                if (isScanning) {
+                    result.device.connectGatt(context, false, gattCallback)
                     isScanning = false
                     bleScanner.stopScan(this)
                 }
             }
         }
     }
+
     /**
      * #6 gattCallback обеспечивает механизм для подключения к устройству BLE, обнаружения служб,
      * изменения MTU, чтения данных с характеристик, обработки ошибок и обновления состояния в потоке data.
@@ -88,24 +89,31 @@ class ConnectionReceiveBLEManager @Inject constructor(
     private var currentConnectionAttempt = 1
     private var MAXIMUM_CONNECTION_ATTEMPTS = 5
 
-    private val gattCallback = object : BluetoothGattCallback(){
+    private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-            if(status == BluetoothGatt.GATT_SUCCESS){
-                if(newState == BluetoothProfile.STATE_CONNECTED){
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if (newState == BluetoothProfile.STATE_CONNECTED) {
                     coroutineScope.launch {
                         data.emit(Resource.Loading(message = "Ищем сервисы..."))
                     }
                     gatt.discoverServices()
                     this@ConnectionReceiveBLEManager.gatt = gatt
-                } else if(newState == BluetoothProfile.STATE_DISCONNECTED){
+                } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                     coroutineScope.launch {
-                        data.emit(Resource.Success(data = ConnectionResult("0ff", ConnectionState.Disconnected)))
+                        data.emit(
+                            Resource.Success(
+                                data = ConnectionResult(
+                                    "0ff",
+                                    ConnectionState.Disconnected
+                                )
+                            )
+                        )
                     }
                     gatt.close()
                 }
-            }else{
+            } else {
                 gatt.close()
-                currentConnectionAttempt+=1
+                currentConnectionAttempt += 1
                 coroutineScope.launch {
                     data.emit(
                         Resource.Loading(
@@ -113,9 +121,9 @@ class ConnectionReceiveBLEManager @Inject constructor(
                         )
                     )
                 }
-                if(currentConnectionAttempt<=MAXIMUM_CONNECTION_ATTEMPTS){
+                if (currentConnectionAttempt <= MAXIMUM_CONNECTION_ATTEMPTS) {
                     startReceiving()
-                }else{
+                } else {
                     coroutineScope.launch {
                         data.emit(Resource.Error(errorMessage = "Не возможно установить соединение с BLE девайсом"))
                     }
@@ -124,7 +132,7 @@ class ConnectionReceiveBLEManager @Inject constructor(
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-            with(gatt){
+            with(gatt) {
                 printGattTable()
                 coroutineScope.launch {
                     data.emit(Resource.Loading(message = "Настраиваем размер пакета данных..."))
@@ -134,8 +142,9 @@ class ConnectionReceiveBLEManager @Inject constructor(
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
-            val characteristic = findCharacteristics(CONNECTING_SERVICE_UIID, CONNECTING_CHARACTERISTICS_UUID)
-            if(characteristic == null){
+            val characteristic =
+                findCharacteristics(CONNECTING_SERVICE_UIID, CONNECTING_CHARACTERISTICS_UUID)
+            if (characteristic == null) {
                 coroutineScope.launch {
                     data.emit(Resource.Error(errorMessage = "Не удалось найти источник данных"))
                 }
@@ -148,31 +157,34 @@ class ConnectionReceiveBLEManager @Inject constructor(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic
         ) {
-            with(characteristic){
-                when(uuid){
-                    UUID.fromString(TEMP_HUMIDITY_CHARACTERISTICS_UUID) -> {
-                        //XX XX XX XX XX XX
-                        val multiplicator = if(value.first().toInt()> 0) -1 else 1
-                        val temperature = value[1].toInt() + value[2].toInt() / 10f
-                        val humidity = value[4].toInt() + value[5].toInt() / 10f
-                        val tempHumidityResult = TempHumidityResult(
-                            multiplicator * temperature,
-                            humidity,
+            with(characteristic) {
+                when (uuid) {
+                    UUID.fromString(CONNECTING_CHARACTERISTICS_UUID) -> {
+                        val resultFromBLE = value.toString()
+                        val bleConnectionResult = ConnectionResult(
+                            resultFromBLE,
                             ConnectionState.Connected
                         )
                         coroutineScope.launch {
                             data.emit(
-                                Resource.Success(data = tempHumidityResult)
+                                Resource.Success(data = bleConnectionResult)
                             )
                         }
                     }
+
                     else -> Unit
                 }
             }
         }
     }
 
-    private fun findCharacteristics(serviceUUID: String, characteristicsUUID:String):BluetoothGattCharacteristic?{
+    /**
+     * ///////////////////////////////////////////////////////////////////////////////////////////////////
+     */
+    private fun findCharacteristics(
+        serviceUUID: String,
+        characteristicsUUID: String
+    ): BluetoothGattCharacteristic? {
         return gatt?.services?.find { service ->
             service.uuid.toString() == serviceUUID
         }?.characteristics?.find { characteristics ->
@@ -180,7 +192,7 @@ class ConnectionReceiveBLEManager @Inject constructor(
         }
     }
 
-    private fun enableNotification(characteristic: BluetoothGattCharacteristic){
+    private fun enableNotification(characteristic: BluetoothGattCharacteristic) {
         val cccdUuid = UUID.fromString(CCCD_DESCRIPTOR_UUID)
         val payload = when {
             characteristic.isIndicatable() -> BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
@@ -189,12 +201,19 @@ class ConnectionReceiveBLEManager @Inject constructor(
         }
 
         characteristic.getDescriptor(cccdUuid)?.let { cccdDescriptor ->
-            if(gatt?.setCharacteristicNotification(characteristic, true) == false){
-                Log.d("BLEReceiveManager","set characteristics notification failed")
+            if (gatt?.setCharacteristicNotification(characteristic, true) == false) {
+                Log.d("BLEReceiveManager", "set characteristics notification failed")
                 return
             }
             writeDescription(cccdDescriptor, payload)
         }
+    }
+
+    private fun writeDescription(descriptor: BluetoothGattDescriptor, payload: ByteArray) {
+        gatt?.let { gatt ->
+            descriptor.value = payload
+            gatt.writeDescriptor(descriptor)
+        } ?: error("Ошибка не связана с BLE устройством!")
     }
 
     override fun startReceiving() {
@@ -202,38 +221,38 @@ class ConnectionReceiveBLEManager @Inject constructor(
             data.emit(Resource.Loading(message = "Сканируем BLE девайсы..."))
         }
         isScanning = true
-        bleScanner.startScan(null,scanSettings,scanCallback)
+        bleScanner.startScan(null, scanSettings, scanCallback)
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     override fun reconnect() {
-        TODO("Not yet implemented")
+        gatt?.connect()
     }
 
     override fun disconnect() {
-        TODO("Not yet implemented")
+        gatt?.disconnect()
     }
 
     override fun closeConnection() {
-        TODO("Not yet implemented")
+        bleScanner.stopScan(scanCallback)
+        val characteristic =
+            findCharacteristics(CONNECTING_SERVICE_UIID, CONNECTING_CHARACTERISTICS_UUID)
+        if (characteristic != null) {
+            disconnectCharacteristic(characteristic)
+        }
+        gatt?.close()
+    }
+
+    private fun disconnectCharacteristic(characteristic: BluetoothGattCharacteristic) {
+        val cccdUuid = UUID.fromString(CCCD_DESCRIPTOR_UUID)
+        characteristic.getDescriptor(cccdUuid)?.let { cccdDescriptor ->
+            if (gatt?.setCharacteristicNotification(characteristic, false) == false) {
+                Log.d(
+                    "ConnectionResMen",
+                    "Не удалось получить уведомление о настройке характеристик"
+                )
+                return
+            }
+            writeDescription(cccdDescriptor, BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)
+        }
     }
 }

@@ -77,6 +77,8 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
     kapt ("androidx.hilt:hilt-compiler:1.0.0")
     implementation ("androidx.hilt:hilt-navigation-compose:1.0.0")
+
+    implementation ("com.google.accompanist:accompanist-permissions:0.21.1-beta")
 }
 
 kapt {
