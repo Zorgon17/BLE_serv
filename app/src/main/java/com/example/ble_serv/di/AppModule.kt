@@ -3,6 +3,8 @@ package com.example.ble_serv.di
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import com.example.ble_serv.data.ConnectionReceiveManager
+import com.example.ble_serv.data.ble.ConnectionReceiveBLEManager
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -23,4 +25,14 @@ object AppModule {
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         return manager.adapter
     }
+
+    @Provides
+    @Singleton
+    fun provideConnectionReceiveManager(
+        @ApplicationContext context: Context,
+        bluetoothAdapter: BluetoothAdapter
+    ):ConnectionReceiveManager{
+        return ConnectionReceiveBLEManager(bluetoothAdapter,context)
+    }
+
 }
